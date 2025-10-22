@@ -1,0 +1,250 @@
+openapi: 3.0.3
+info:
+  title: ErgoVest Backend API
+  version: 1.0.0
+  description: |
+    Dokumentasi OpenAPI / Swagger untuk ErgoVest Backend.
+    API ini menyediakan endpoints untuk autentikasi, pengambilan histori data sensor, histori alert, survey, dan WebSocket untuk data realtime.
+
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+
+security:
+  - bearerAuth: []
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    LoginRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+
+    TokenResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        token:
+          type: string
+        role:
+          type: string
+      example:
+        message: "Login Successful!"
+        token: "<jwt-token-here>"
+        role: "admin"
+
+    SensorData:
+      type: object
+      properties:
+        temp:
+          type: number
+          format: float
+        hum:
+          type: number
+          format: float
+        gas:
+          type: number
+          format: float
+        muscle:
+          type: integer
+        piezo:
+          type: integer
+        pitch1:
+          type: number
+          format: float
+        roll1:
+          type: number
+          format: float
+        yawSpeed1:
+          type: number
+          format: float
+        pitch2:
+          type: number
+          format: float
+        roll2:
+          type: number
+          format: float
+        yawSpeed2:
+          type: number
+          format: float
+        timestamp:
+          type: integer
+          description: epoch milliseconds
+
+    Alert:
+      type: object
+      properties:
+        level:
+          type: string
+          description: "danger | warning"
+        message:
+          type: string
+        sensor:
+          type: string
+        value:
+          type: string
+        time:
+          type: string
+        timestamp:
+          type: integer
+
+    SurveySubmit:
+      type: object
+      description: Survey payload (TBD)
+
+paths:
+  /api/v1/login:
+    post:
+      summary: Login user and obtain JWT token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Successful login
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+              examples:
+                success:
+                  summary: Example successful login
+                  value:
+                    message: "Login Successful!"
+                    token: "eyJhbGciOi..."
+                    role: "admin"
+        '400':
+          description: Bad request (validation)
+        '401':
+          description: Invalid credentials
+
+  /api/v1/data/sensor-history:
+    get:
+      summary: Get historical sensor data
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+          description: Number of latest entries to return (default 100)
+      responses:
+        '200':
+          description: Array of sensor data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SensorData'
+              examples:
+                sample:
+                  summary: Example sensor history
+                  value:
+                    - temp: 36.1
+                      hum: 45.2
+                      gas: 0.0
+                      muscle: 1200
+                      piezo: 0
+                      pitch1: 10.5
+                      roll1: 2.0
+                      yawSpeed1: 12.3
+                      pitch2: 8.1
+                      roll2: 3.2
+                      yawSpeed2: 9.1
+                      timestamp: 1635000000000
+                    - temp: 36.3
+                      hum: 44.8
+                      gas: 0.0
+                      muscle: 1300
+                      piezo: 0
+                      pitch1: 11.0
+                      roll1: 2.5
+                      yawSpeed1: 10.0
+                      pitch2: 8.5
+                      roll2: 3.5
+                      yawSpeed2: 10.0
+                      timestamp: 1635000001000
+
+  /api/v1/data/alert-history:
+    get:
+      summary: Get historical alerts
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Array of alerts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Alert'
+              examples:
+                sample:
+                  summary: Example alert history
+                  value:
+                    - level: "danger"
+                      message: "🚨 DANGER: Extreme upper back bending!"
+                      sensor: "MPU1 Pitch"
+                      value: "45.0°"
+                      time: "23-10-2025 12:34:56"
+                      timestamp: 1635000002000
+                    - level: "warning"
+                      message: "⚠️ WARNING: High muscle strain!"
+                      sensor: "EMG"
+                      value: "3200"
+                      time: "23-10-2025 12:35:01"
+                      timestamp: 1635000003000
+
+  /api/v1/survey/submit:
+    post:
+      summary: Submit a survey (not implemented)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SurveySubmit'
+      responses:
+        '200':
+          description: Acknowledgement (currently placeholder)
+
+  /api/v1/data/survey-stats:
+    get:
+      summary: Get survey statistics (not implemented)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Placeholder response
+
+  /api/v1/ws:
+    get:
+      summary: WebSocket endpoint for realtime sensor/alert events
+      description: |
+        This endpoint upgrades the connection to a WebSocket. The server will
+        broadcast JSON envelopes of the shape: {"type":"sensor"|"alert","payload":{...}}
+      responses:
+        '101':
+          description: WebSocket Upgrade
+
+tags:
+  - name: auth
+  - name: data
+  - name: survey

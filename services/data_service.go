@@ -1,8 +1,10 @@
 package services
 
 import (
-	"github.com/dawwasinha/ergovest-backend/models" // Ganti dengan path modul Anda
+	"encoding/json"
 	"sync"
+
+	"github.com/dawwasinha/ergovest-backend/models" // Ganti dengan path modul Anda
 )
 
 // Global Variables untuk penyimpanan In-Memory (Simulasi Database)
@@ -10,8 +12,8 @@ var (
 	// SensorHistory menyimpan semua data sensor yang masuk dari MQTT
 	SensorHistory = make([]models.SensorData, 0)
 	// AlertHistory menyimpan semua alert yang terdeteksi
-	AlertHistory  = make([]models.Alert, 0) 
-	
+	AlertHistory = make([]models.Alert, 0)
+
 	// Mutex untuk concurrency safety karena ini diakses dari MQTT Goroutine dan API Controller
 	dataMutex = sync.RWMutex{}
 )
@@ -20,20 +22,28 @@ var (
 func AddSensorData(data models.SensorData) {
 	dataMutex.Lock()
 	defer dataMutex.Unlock()
-	
+
 	// Batasi ukuran histori agar memori tidak penuh (misalnya, 1000 data)
 	if len(SensorHistory) >= 1000 {
 		// Hapus data tertua
-		SensorHistory = SensorHistory[1:] 
+		SensorHistory = SensorHistory[1:]
 	}
 	SensorHistory = append(SensorHistory, data)
+
+	// Persist to DB (best-effort)
+	go func(d models.SensorData) {
+		_ = SaveSensor(d)
+		if b, err := json.Marshal(map[string]interface{}{"type": "sensor", "payload": d}); err == nil {
+			BroadcastRaw(1, b)
+		}
+	}(data)
 }
 
 // GetSensorHistory mendapatkan histori data sensor (Contoh: 100 data terbaru)
 func GetSensorHistory(limit int) []models.SensorData {
 	dataMutex.RLock()
 	defer dataMutex.RUnlock()
-	
+
 	if limit > len(SensorHistory) {
 		limit = len(SensorHistory)
 	}
@@ -45,18 +55,26 @@ func GetSensorHistory(limit int) []models.SensorData {
 func AddAlert(alert models.Alert) {
 	dataMutex.Lock()
 	defer dataMutex.Unlock()
-	
+
 	if len(AlertHistory) >= 50 { // Batasi riwayat alert
 		AlertHistory = AlertHistory[1:]
 	}
 	AlertHistory = append(AlertHistory, alert)
+
+	// Persist and broadcast
+	go func(a models.Alert) {
+		_ = SaveAlert(a)
+		if b, err := json.Marshal(map[string]interface{}{"type": "alert", "payload": a}); err == nil {
+			BroadcastRaw(1, b)
+		}
+	}(alert)
 }
 
 // GetAlertHistory mendapatkan histori alert
 func GetAlertHistory() []models.Alert {
 	dataMutex.RLock()
 	defer dataMutex.RUnlock()
-	
+
 	return AlertHistory
 }
 

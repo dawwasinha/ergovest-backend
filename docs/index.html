@@ -1,0 +1,72 @@
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ErgoVest API - Swagger UI</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.18.3/swagger-ui.css" />
+  </head>
+  <body>
+    <div style="max-width:900px;margin:12px auto;display:flex;gap:8px;align-items:center;">
+      <div>
+        <input id="doc-username" placeholder="username" value="admin" />
+        <input id="doc-password" type="password" placeholder="password" value="admin123" />
+        <button id="doc-login">Login & Authorize</button>
+      </div>
+      <div id="doc-status" style="font-size:0.9rem;color:#333"></div>
+    </div>
+
+    <div id="swagger-ui"></div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.18.3/swagger-ui-bundle.js"></script>
+    <script>
+      window.onload = function() {
+        const ui = SwaggerUIBundle({
+          url: '/docs/openapi.yaml',
+          dom_id: '#swagger-ui',
+          deepLinking: true,
+          presets: [
+            SwaggerUIBundle.presets.apis,
+          ],
+          layout: 'BaseLayout'
+        })
+        window.ui = ui
+
+        // Attach login handler
+        document.getElementById('doc-login').addEventListener('click', async function() {
+          const user = document.getElementById('doc-username').value
+          const pass = document.getElementById('doc-password').value
+          const status = document.getElementById('doc-status')
+          status.textContent = 'Logging in...'
+          try {
+            const res = await fetch('/api/v1/login', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ username: user, password: pass })
+            })
+            if (!res.ok) throw new Error('login failed: ' + res.status)
+            const body = await res.json()
+            const token = body.token
+            if (!token) throw new Error('no token in response')
+
+            // Preauthorize Swagger UI's bearerAuth scheme
+            try {
+              if (window.ui && typeof window.ui.preauthorizeApiKey === 'function') {
+                window.ui.preauthorizeApiKey('bearerAuth', 'Bearer ' + token)
+              } else if (window.ui && window.ui.authActions && typeof window.ui.authActions.authorize === 'function') {
+                const opt = { bearerAuth: { name: 'Authorization', schema: { type: 'http', scheme: 'bearer' }, value: 'Bearer ' + token } }
+                window.ui.authActions.authorize(opt)
+              }
+            } catch (e) {
+              // ignore
+            }
+
+            status.textContent = 'Authorized'
+          } catch (err) {
+            status.textContent = 'Error: ' + err.message
+          }
+        })
+      }
+    </script>
+  </body>
+</html>

@@ -1,15 +1,20 @@
 package main
 
 import (
-	"github.com/gin-gonic/gin"
 	"log"
+
+	"github.com/dawwasinha/ergovest-backend/config"
 	"github.com/dawwasinha/ergovest-backend/routes"
-	"github.com/dawwasinha/ergovest-backend/services" // <-- 1. Import package services
+	"github.com/dawwasinha/ergovest-backend/services"
+	"github.com/gin-gonic/gin"
 )
 
 func main() {
 	// 1. Inisialisasi Database (Contoh)
 	// db.ConnectDB()
+	services.InitDB()
+	defer services.CloseDB()
+	services.InitUsers()
 
 	// 2. Inisialisasi MQTT Service (Koneksi ke HiveMQ di background)
 	// 'go' menjalankan StartMQTTClient() secara asynchronous
@@ -36,6 +41,9 @@ func main() {
 	// 4. Daftarkan Semua Routes (API Endpoints)
 	routes.SetupRouter(router)
 
+	// Serve API docs (ReDoc) from /docs
+	router.Static("/docs", "./docs")
+
 	// 5. Jalankan Server Gin
-	log.Fatal(router.Run(":8080")) // Server berjalan di port 8080
+	log.Fatal(router.Run(config.GetServerPort())) // Server berjalan pada port dari env
 }
