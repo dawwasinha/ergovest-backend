@@ -2,7 +2,7 @@ package routes
 
 import (
     "github.com/gin-gonic/gin"
-    "github.com/dawwasinha/controllers" // Ganti dengan path modul Anda
+    "github.com/dawwasinha/ergovest-backend/controllers" // Ganti dengan path modul Anda
 )
     
 func SetupRouter(r *gin.Engine) {

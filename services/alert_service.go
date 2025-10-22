@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"math"
 	"time"
-	"ergovest-backend/models" // Ganti dengan path modul Anda
+	"github.com/dawwasinha/ergovest-backend/models" // Ganti dengan path modul Anda
 )
 
 const (

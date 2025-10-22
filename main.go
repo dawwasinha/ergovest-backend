@@ -4,7 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"log"
 	"github.com/dawwasinha/ergovest-backend/routes"
-	"ergovest-backend/services" // <-- 1. Import package services
+	"github.com/dawwasinha/ergovest-backend/services" // <-- 1. Import package services
 )
 
 func main() {

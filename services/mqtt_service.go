@@ -56,7 +56,6 @@ func StartMQTTClient() {
 	opts.SetClientID("GoBackend_" + fmt.Sprintf("%d", time.Now().Unix()))
 	opts.SetUsername(MQTT_USER)
 	opts.SetPassword(MQTT_PASS)
-	opts.SetTLSConfiguration(nil) // Paho akan otomatis menangani TLS/SSL untuk port 8883
 
 	// Atur Handler saat koneksi berhasil
 	opts.SetOnConnectHandler(func(client mqtt.Client) {
